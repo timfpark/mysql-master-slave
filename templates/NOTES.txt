@@ -1,15 +1,21 @@
-1. Get the application URL by running these commands:
-{{- if contains "NodePort" .Values.service.type }}
-  export NODE_PORT=$(kubectl get --namespace {{ .Release.Namespace }} -o jsonpath="{.spec.ports[0].nodePort}" services {{ template "fullname" . }})
-  export NODE_IP=$(kubectl get nodes --namespace {{ .Release.Namespace }} -o jsonpath="{.items[0].status.addresses[0].address}")
-  echo http://$NODE_IP:$NODE_PORT/login
-{{- else if contains "LoadBalancer" .Values.service.type }}
-     NOTE: It may take a few minutes for the LoadBalancer IP to be available.
-           You can watch the status of by running 'kubectl get svc -w {{ template "fullname" . }}'
-  export SERVICE_IP=$(kubectl get svc --namespace {{ .Release.Namespace }} {{ template "fullname" . }} -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
-  echo http://$SERVICE_IP:{{ .Values.service.externalPort }}
-{{- else if contains "ClusterIP"  .Values.service.type }}
-  export POD_NAME=$(kubectl get pods --namespace {{ .Release.Namespace }} -l "app={{ template "fullname" . }}" -o jsonpath="{.items[0].metadata.name}")
-  echo "Visit http://127.0.0.1:8080 to use your application"
-  kubectl port-forward $POD_NAME 8080:{{ .Values.service.externalPort }}
-{{- end }}
+The MySQL cluster is comprised of one MySQL master pod and zero or more MySQL slave pods. The MySQL pods are accessible within the cluster through:
+
+    <pod-name>.{{ template "fullname" . }}
+
+The `{{ template "fullname" . }}-readonly` service distributes connections across all MySQL pods and can be used for read queries. In order to execute writes, clients should connect to the MySQL master pod:
+
+    {{ template "fullname" . }}-0.{{ template "fullname" . }}
+
+To get your root password run:
+
+    kubectl get secret --namespace {{ .Release.Namespace }} {{ template "fullname" . }} -o jsonpath="{.data.mysql-root-password}" | base64 --decode; echo
+
+To connect to your database:
+
+1. Run a pod that you can use as a client:
+
+    kubectl run mysql-client --image=mysql:{{ .Values.imageTag }} -it --rm --restart=Never -- /bin/sh
+
+2. Open a connection to MySQL 
+
+    mysql -h {{ template "fullname" . }}-0.{{ template "fullname" . }} -p
