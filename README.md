@@ -31,7 +31,7 @@ The following tables lists the configurable parameters of the MySQL chart and th
 | `imageTag`                 | `mysql` image tag.                 | Most recent release                                        |
 | `mysqlRootPassword`        | Password for the `root` user.      | `nil`                                                      |
 | `mysqlUser`                | Username of new user to create.    | `nil`                                                      |
-| `mysqlPassword`            | Password for the new user.         | Randomly generated
+| `mysqlPassword`            | Password for the new user.         | Randomly generated                                         |
 | `mysqlDatabase`            | Name for new database to create.   | `nil`                                                      |
 | `persistence.size`         | Size of persistent volume claim    | 10Gi
 | `persistence.storageClass` | Type of persistent volume claim    | fast

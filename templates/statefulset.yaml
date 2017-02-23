@@ -53,7 +53,7 @@ spec:
               # Clone data from previous peer.\n
               ncat --recv-only {{ template "fullname" . }}-$(($ordinal-1)).{{ template "fullname" . }} 3307 | xbstream -x -C /var/lib/mysql\n
               # Prepare the backup.\n
-              xtrabackup --prepare --target-dir=/var/lib/mysql\n
+              xtrabackup --prepare --user=root --password=${MYSQL_ROOT_PASSWORD} --target-dir=/var/lib/mysql\n
             "],
             "volumeMounts": [
               {"name": "data", "mountPath": "/var/lib/mysql", "subPath": "mysql"},
@@ -66,10 +66,6 @@ spec:
       - name: mysql
         image: mysql:{{ .Values.imageTag }}
         env:
-        {{- if .Values.mysqlAllowEmptyPassword }}
-        - name: MYSQL_ALLOW_EMPTY_PASSWORD
-          value: "true"
-        {{- else }}
         - name: MYSQL_ROOT_PASSWORD
           valueFrom:
             secretKeyRef:
@@ -80,11 +76,8 @@ spec:
             secretKeyRef:
               name: {{ template "fullname" . }}
               key: mysql-password
-        {{- end }}
         - name: MYSQL_USER
           value: {{ default "" .Values.mysqlUser | quote }}
-        - name: MYSQL_DATABASE
-          value: {{ default "" .Values.mysqlDatabase | quote }}
         ports:
         - name: mysql
           containerPort: 3306
@@ -100,17 +93,27 @@ spec:
             memory: 100Mi
         livenessProbe:
           exec:
-            command: ["mysqladmin", "ping"]
+            command: ["mysqladmin", "ping", "-p${MYSQL_ROOT_PASSWORD}"]
           initialDelaySeconds: 30
           timeoutSeconds: 5
         readinessProbe:
           exec:
             # Check we can execute queries over TCP (skip-networking is off).
-            command: ["mysql", "-h", "127.0.0.1", "-e", "SELECT 1", "-p${MYSQL_PASSWORD}"]
+            command: 
+            - bash
+            - "-c"
+            #["mysql", "-h", "127.0.0.1", "-u", "root", "-e", "'SELECT 1'", "-p${MYSQL_ROOT_PASSWORD}"]
+            - mysql -h 127.0.0.1 -u root -e "SELECT 1" -p${MYSQL_ROOT_PASSWORD}
           initialDelaySeconds: 5
           timeoutSeconds: 1
       - name: xtrabackup
         image: gcr.io/google-samples/xtrabackup:1.0
+        env:
+        - name: MYSQL_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ template "fullname" . }}
+              key: mysql-root-password
         ports:
         - name: xtrabackup
           containerPort: 3307
@@ -139,9 +142,8 @@ spec:
           # Check if we need to complete a clone by starting replication.
           if [[ -f change_master_to.sql.in ]]; then
             echo "Waiting for mysqld to be ready (accepting connections)"
-            until mysql -h 127.0.0.1 -e "SELECT 1" -p${MYSQL_PASSWORD}; do sleep 1; done
+            until mysql -h 127.0.0.1 -e "SELECT 1" -u root -p${MYSQL_ROOT_PASSWORD}; do sleep 1; done
 
-            echo "Initializing replication from clone position"
             # In case of container restart, attempt this at-most-once.
             mv change_master_to.sql.in change_master_to.sql.orig
             mysql -h 127.0.0.1 -p${MYSQL_PASSWORD}<<EOF
@@ -156,7 +158,7 @@ spec:
 
           # Start a server to send backups when requested by peers.
           exec ncat --listen --keep-open --send-only --max-conns=1 3307 -c \
-            "xtrabackup --backup --slave-info --stream=xbstream --host=127.0.0.1 --user=root"
+            "xtrabackup --backup --slave-info --stream=xbstream --host=127.0.0.1 --user=root --password=${MYSQL_ROOT_PASSWORD}"
         volumeMounts:
         - name: data
           mountPath: /var/lib/mysql
@@ -184,8 +186,7 @@ spec:
         {{- end }}
     spec:
       accessModes: 
-        
-         - {{ .Values.persistence.accessMode | quote }}
+      - {{ .Values.persistence.accessMode | quote }}
       resources:
         requests:
           storage: {{ .Values.persistence.size | quote }}
