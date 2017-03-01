@@ -9,7 +9,9 @@
 To install the chart with the release name `my-release`:
 
 ```bash
-$ helm install --name my-release stable/mysql
+$ git@github.com:jpoon/mysql-master-slave.git
+$ cd mysql-master-slave
+$ helm install --name my-release .
 ```
 
 The command deploys MySQL cluster on the Kubernetes cluster in the default configuration. The [configuration](#configuration) section lists the parameters that can be configured during installation.
