@@ -144,12 +144,12 @@ spec:
             # In case of container restart, attempt this at-most-once.
             cp change_master_to.sql.in change_master_to.sql.orig
             mysql -h 127.0.0.1 -u root -p${MYSQL_ROOT_PASSWORD} --verbose<<EOF
-          $(<change_master_to.sql.orig),
+            $(<change_master_to.sql.orig),
             MASTER_HOST='{{ template "fullname" . }}-0.{{ template "fullname" . }}',
             MASTER_USER='root',
             MASTER_PASSWORD='${MYSQL_ROOT_PASSWORD}',
             MASTER_CONNECT_RETRY=10;
-          START SLAVE;
+            START SLAVE;
           EOF
           fi
 
