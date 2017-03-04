@@ -106,16 +106,20 @@ spec:
             memory: 100Mi
         livenessProbe:
           exec:
-            command: ["mysqladmin", "ping", "-p${MYSQL_ROOT_PASSWORD}"]
+            command:
+            - /bin/sh
+            - "-c"
+            - mysqladmin ping -h 127.0.0.1 -u root -p${MYSQL_ROOT_PASSWORD}
           initialDelaySeconds: 30
           timeoutSeconds: 5
         readinessProbe:
           exec:
             # Check we can execute queries over TCP (skip-networking is off).
-            command: 
-            - bash
+            command:
+            - /bin/sh
             - "-c"
-            - mysql -h 127.0.0.1 -u root -e "SELECT 1" -p${MYSQL_ROOT_PASSWORD}
+            - MYSQL_PWD="${MYSQL_ROOT_PASSWORD}" 
+            - mysql -h 127.0.0.1 -u root -e "SELECT 1""
           initialDelaySeconds: 10
           timeoutSeconds: 1
       - name: xtrabackup
