@@ -24,10 +24,9 @@ spec:
               # Generate mysql server-id from pod ordinal index.\n
               [[ `hostname` =~ -([0-9]+)$ ]] || exit 1\n
               ordinal=${BASH_REMATCH[1]}\n
-              echo [mysqld] > /mnt/conf.d/server-id.cnf\n
-              # Add an offset to avoid reserved server-id=0 value.\n
-              echo server-id=$((100 + $ordinal)) >> /mnt/conf.d/server-id.cnf\n
-              # Copy appropriate conf.d files from config-map to emptyDir.\n
+              # Copy server-id.conf adding offset to avoid reserved server-id=0 value.\n
+              cat /mnt/config-map/server-id.cnf | sed s/@@SERVER_ID@@/$((100 + $ordinal))/g > /mnt/conf.d/server-id.cnf\n
+              # Copy appropriate conf.d files from config-map to config mount.\n
               if [[ $ordinal -eq 0 ]]; then\n
                 cp /mnt/config-map/master.cnf /mnt/conf.d/\n
               else\n
@@ -71,13 +70,15 @@ spec:
             secretKeyRef:
               name: {{ template "fullname" . }}
               key: mysql-root-password
+        {{ if .Values.mysqlUser }}
         - name: MYSQL_PASSWORD
           valueFrom:
             secretKeyRef:
               name: {{ template "fullname" . }}
               key: mysql-password
         - name: MYSQL_USER
-          value: {{ default "" .Values.mysqlUser | quote }}
+          value: {{ .Values.mysqlUser | quote }}
+        {{ end }}
         ports:
         - name: mysql
           containerPort: 3306
@@ -102,9 +103,8 @@ spec:
             command: 
             - bash
             - "-c"
-            #["mysql", "-h", "127.0.0.1", "-u", "root", "-e", "'SELECT 1'", "-p${MYSQL_ROOT_PASSWORD}"]
             - mysql -h 127.0.0.1 -u root -e "SELECT 1" -p${MYSQL_ROOT_PASSWORD}
-          initialDelaySeconds: 5
+          initialDelaySeconds: 10
           timeoutSeconds: 1
       - name: xtrabackup
         image: gcr.io/google-samples/xtrabackup:1.0
@@ -128,13 +128,10 @@ spec:
           if [[ -f xtrabackup_slave_info ]]; then
             # XtraBackup already generated a partial "CHANGE MASTER TO" query
             # because we're cloning from an existing slave.
-            mv xtrabackup_slave_info change_master_to.sql.in
-            # Ignore xtrabackup_binlog_info in this case (it's useless).
-            rm -f xtrabackup_binlog_info
+            cp xtrabackup_slave_info change_master_to.sql.in
           elif [[ -f xtrabackup_binlog_info ]]; then
             # We're cloning directly from master. Parse binlog position.
             [[ `cat xtrabackup_binlog_info` =~ ^(.*?)[[:space:]]+(.*?)$ ]] || exit 1
-            rm xtrabackup_binlog_info
             echo "CHANGE MASTER TO MASTER_LOG_FILE='${BASH_REMATCH[1]}',\
                   MASTER_LOG_POS=${BASH_REMATCH[2]}" > change_master_to.sql.in
           fi
@@ -145,12 +142,12 @@ spec:
             until mysql -h 127.0.0.1 -e "SELECT 1" -u root -p${MYSQL_ROOT_PASSWORD}; do sleep 1; done
 
             # In case of container restart, attempt this at-most-once.
-            mv change_master_to.sql.in change_master_to.sql.orig
-            mysql -h 127.0.0.1 -p${MYSQL_PASSWORD}<<EOF
+            cp change_master_to.sql.in change_master_to.sql.orig
+            mysql -h 127.0.0.1 -u root -p${MYSQL_ROOT_PASSWORD} --verbose<<EOF
           $(<change_master_to.sql.orig),
             MASTER_HOST='{{ template "fullname" . }}-0.{{ template "fullname" . }}',
             MASTER_USER='root',
-            MASTER_PASSWORD=$MYSQL_ROOT_PASSWORD,
+            MASTER_PASSWORD='${MYSQL_ROOT_PASSWORD}',
             MASTER_CONNECT_RETRY=10;
           START SLAVE;
           EOF
@@ -174,8 +171,13 @@ spec:
         emptyDir: {}
       - name: config-map
         configMap:
-          name: {{ template "fullname" . }} 
+          name: {{ template "fullname" . }}
+      {{- if eq .Values.persistence.enabled false }}
+      - name: data
+        emptyDir: {}
+      {{- end}}
   volumeClaimTemplates:
+  {{- if .Values.persistence.enabled }}
   - metadata:
       name: data
       annotations:
@@ -190,3 +192,4 @@ spec:
       resources:
         requests:
           storage: {{ .Values.persistence.size | quote }}
+  {{- end }}

@@ -1,7 +1,7 @@
 ## mysql image version
 ## ref: https://hub.docker.com/r/library/mysql/tags/
 ##
-imageTag: "5.7.14"
+imageTag: "5.7.13"
 
 replicaCount: 2
 
@@ -27,11 +27,11 @@ replicaCount: 2
 ## ref: http://kubernetes.io/docs/user-guide/persistent-volumes/
 ##
 persistence:
-  enabled: true
+  enabled: false ## TODO change to TRUE
   ## If defined, volume.beta.kubernetes.io/storage-class: <storageClass>
   ## Default: volume.alpha.kubernetes.io/storage-class: default
   ##
-  storageClass: fast
+  storageClass: fast 
   accessMode: ReadWriteOnce
   size: 10Gi
 

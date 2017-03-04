@@ -35,8 +35,9 @@ The following tables lists the configurable parameters of the MySQL chart and th
 | `mysqlUser`                | Username of new user to create.    | `nil`                                                      |
 | `mysqlPassword`            | Password for the new user.         | Randomly generated                                         |
 | `mysqlDatabase`            | Name for new database to create.   | `nil`                                                      |
-| `persistence.size`         | Size of persistent volume claim    | 10Gi
-| `persistence.storageClass` | Type of persistent volume claim    | fast
+| `persistence.enabled`      | Create a volume to store data      | true                                                       | 
+| `persistence.size`         | Size of persistent volume claim    | 10Gi                                                       |
+| `persistence.storageClass` | Type of persistent volume claim    | fast                                                       |
 | `persistence.accessMode`   | ReadWriteOnce or ReadOnly          | ReadWriteOnce                                              |
 | `resources`                | CPU/Memory resource requests/limits | Memory: `256Mi`, CPU: `100m`                              |
 
