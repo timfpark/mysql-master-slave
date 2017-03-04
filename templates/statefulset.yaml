@@ -43,6 +43,7 @@ spec:
             "image": "gcr.io/google-samples/xtrabackup:1.0",
             "command": ["bash", "-c", "
               set -ex\n
+              env\n
               # Skip the clone if data already exists.\n
               [[ -d /var/lib/mysql/mysql ]] && exit 0\n
               # Skip the clone on master (ordinal index 0).\n
@@ -54,6 +55,17 @@ spec:
               # Prepare the backup.\n
               xtrabackup --prepare --user=root --password=${MYSQL_ROOT_PASSWORD} --target-dir=/var/lib/mysql\n
             "],
+            "env": [
+              {
+                "name": "MYSQL_ROOT_PASSWORD",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "{{ template "fullname" . }}",
+                    "key": "mysql-root-password"
+                  }
+                }
+              }
+            ],
             "volumeMounts": [
               {"name": "data", "mountPath": "/var/lib/mysql", "subPath": "mysql"},
               {"name": "conf", "mountPath": "/etc/mysql/conf.d"}
@@ -71,13 +83,13 @@ spec:
               name: {{ template "fullname" . }}
               key: mysql-root-password
         {{ if .Values.mysqlUser }}
+        - name: MYSQL_USER
+          value: {{ .Values.mysqlUser | quote }}
         - name: MYSQL_PASSWORD
           valueFrom:
             secretKeyRef:
               name: {{ template "fullname" . }}
               key: mysql-password
-        - name: MYSQL_USER
-          value: {{ .Values.mysqlUser | quote }}
         {{ end }}
         ports:
         - name: mysql
