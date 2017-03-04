@@ -12,10 +12,12 @@ data:
     # Apply this config only on the master.
     [mysqld]
     log-bin
+    skip_name_resolve
   slave.cnf: |
     # Apply this config only on slaves.
     [mysqld]
     super-read-only
+    skip_name_resolve
   server-id.cnf: |
     [mysqld]
     server-id=@@SERVER_ID@@
