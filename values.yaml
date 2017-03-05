@@ -5,23 +5,24 @@ imageTag: "5.7.13"
 
 replicaCount: 2
 
-## Specify password for root user
+## Password for MySQL root user
 ##
-## Default: random 10 character string
-# mysqlRootPassword: testing
+# mysqlRootPassword: ## Default: random 10 character string
+
+## Username/password for MySQL replication user
+##
+mysqlReplicationUser: repl
+# mysqlReplicationPassword:
 
 ## Create a database user
 ##
 # mysqlUser:
-# mysqlPassword:
+# mysqlPassword: ## Default: random 10 character string
+
 
 ## Allow unauthenticated access, uncomment to enable
 ##
 # mysqlAllowEmptyPassword: true
-
-## Create a database
-##
-# mysqlDatabase:
 
 ## Enable persistence using Persistent Volume Claims
 ## ref: http://kubernetes.io/docs/user-guide/persistent-volumes/
