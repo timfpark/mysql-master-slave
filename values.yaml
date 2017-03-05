@@ -3,7 +3,7 @@
 ##
 imageTag: "5.7.13"
 
-replicaCount: 2
+replicaCount: 3
 
 ## Password for MySQL root user
 ##
