@@ -40,6 +40,6 @@ The following tables lists the configurable parameters of the MySQL chart and th
 | `persistence.size`         | Size of persistent volume claim    | 10Gi                                                       |
 | `persistence.storageClass` | Type of persistent volume claim    | fast                                                       |
 | `persistence.accessMode`   | ReadWriteOnce or ReadOnly          | ReadWriteOnce                                              |
-| `resources`                | CPU/Memory resource requests/limits | Memory: `256Mi`, CPU: `100m`                              |
+| `resources`                | CPU/Memory resource requests/limits | Memory: `128Mi`, CPU: `100m`                              |
 
 Specify each parameter using the `--set key=value[,key=value]` argument to `helm install`. For example,
